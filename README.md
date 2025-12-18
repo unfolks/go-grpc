@@ -4,13 +4,14 @@ This project demonstrates a Hexagonal Architecture (Ports and Adapters) implemen
 
 ## Project Overview
 
-The project is structured using a Modular Monolith architecture, grouping code by feature (module) rather than technical layer.
-- **Modules**: Each feature has its own folder (e.g., `internal/order`, `internal/product`) containing its domain logic and adapters.
-- **App**: Wires everything together (`internal/app`).
+The project is structured using a Modular Monolith architecture, where each business capability is encapsulated in its own module.
+- **Modules**: Each feature has its own folder (e.g., `internal/order`, `internal/product`, `internal/customer`) containing its domain logic, adapters, and its own wiring.
+- **App**: Orchestrates the modules (`internal/app`).
 
 Each module typically contains:
 - `domain/`: Business logic, entities, and interfaces.
 - `adapters/`: Implementations for databases, HTTP, gRPC, etc.
+- `app.go`: Module-level wiring (initializes domain services and adapters).
 
 ## Prerequisites
 
@@ -29,20 +30,33 @@ Each module typically contains:
     go mod download
     ```
 3.  **Database Setup**
-    Ensure you have a PostgreSQL database running. Update the configuration in `cmd/server/main.go` or use environment variables (recommended for production).
+    Ensure you have a PostgreSQL database running. Update the configuration in `cmd/server/main.go`.
     
     *Default Config in `main.go`:*
     - User: `admin`
     - Password: `password123`
-    - Host: `db:5432`
+    - Host: `localhost:5432`
     - DB Name: `ordersdb`
 
-    *Note: You will need to create the `orders` table manually or via migration:*
+    *Database Schema:*
     ```sql
     CREATE TABLE orders (
         id VARCHAR(36) PRIMARY KEY,
         amount DOUBLE PRECISION NOT NULL,
         created_at TIMESTAMP NOT NULL
+    );
+
+    CREATE TABLE products (
+        id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        price DOUBLE PRECISION NOT NULL
+    );
+
+    CREATE TABLE customers (
+        id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        address TEXT
     );
     ```
 
@@ -59,61 +73,75 @@ The server starts:
 ### API Endpoints
 
 #### HTTP
-- **Create Order**
-    - `POST /orders`
-    - Body: `{"amount": 100.50}`
-- **Get Order**
-    - `GET /orders/get?id=<ORDER_ID>`
+- **Orders**
+    - `POST /orders`: Create an order
+    - `GET /orders/get?id=<ID>`: Get an order
+- **Products**
+    - `POST /products`: Create a product
+    - `GET /products/{id}`: Get a product
+    - `PUT /products/{id}`: Update a product
+    - `DELETE /products/{id}`: Delete a product
+    - `GET /products`: List all products
+- **Customers**
+    - `POST /customer`: Create a customer
+    - `GET /customer`: List all customers
 
 #### gRPC
-- **CreateOrder**
-- **GetOrder**
-- Proto definition: `proto/order.proto`
+- **OrderService** (CreateOrder, GetOrder)
+- **ProductService** (CreateProduct, GetProduct, ListProducts, UpdateProduct, DeleteProduct)
+- Proto definitions: `proto/*.proto`
 
 ## Development Guide: How to Create a New Module
 
 Follow these steps to add a new module (e.g., `Payment`).
 
 ### 1. Create Module Structure
-Create the following directory structure:
 ```
 internal/payment/
-├── domain/
-├── adapters/
-│   ├── postgres/
-│   ├── http/
-│   └── grpc/
+├── domain/        (Entity, Repository Interface, Service)
+├── adapters/      (Postgres, HTTP, gRPC implementations)
+└── app.go         (Module-level wiring)
 ```
 
-### 2. Define the Domain
-In `internal/payment/domain`:
-- **Entity (`entity.go`)**: Define core data structures (e.g., `Payment`).
-- **Repository Interface (`repository.go`)**: Define `Repository` interface.
-- **Service Interface & Implementation (`service.go`)**: Define business logic.
+### 2. Implement Module Wiring (`internal/payment/app.go`)
+Define a `Components` struct and an `Init` function that returns it:
+```go
+package payment
 
-### 3. Implement Adapters
-In `internal/payment/adapters`:
+type Components struct {
+    HTTPHandler *http.Handler
+    // ... other components
+}
 
-#### Database (`internal/payment/adapters/postgres`)
-- Implement the `Repository` interface.
+func Init(db *sql.DB) Components {
+    // initialize repo, usecases, handlers
+    return Components{ ... }
+}
+```
 
-#### HTTP (`internal/payment/adapters/http`)
-- Create a `Handler` struct.
-- Implement methods like `CreatePayment`, `GetPayment`.
-- Implement `RegisterRoutes(mux *http.ServeMux)`.
+### 3. Register in App Wiring (`internal/app/wiring.go`)
+Add the new module to the `Application` struct and call its `Init` in `app.Init`:
+```go
+type Application struct {
+    DB      *sql.DB
+    Payment payment.Components
+    // ... other modules
+}
 
-#### gRPC (`internal/payment/adapters/grpc`)
-- Define proto in `proto/payment.proto`.
-- Generate code.
-- Implement the server interface.
+func Init(cfg DBConfig) (*Application, error) {
+    // ... db init
+    return &Application{
+        DB:      db,
+        Payment: payment.Init(db),
+    }, nil
+}
+```
 
-### 4. Wiring (`internal/app/wiring.go`)
-- Import your new module packages.
-- Add Service and Handler to `Application` struct.
-- Initialize Repository, Service, and Handler in `Init`.
-
-### 5. Main (`cmd/server/main.go`)
-- Call `a.PaymentHTTP.RegisterRoutes(mux)` to expose endpoints.
+### 4. Expose in Main (`cmd/server/main.go`)
+Register routes or gRPC services:
+```go
+a.Payment.HTTPHandler.RegisterRoutes(mux)
+```
 
 ## Regeneration of Proto Files
 If you modify `.proto` files, run:

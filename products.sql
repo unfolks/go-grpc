@@ -1,0 +1,6 @@
+CREATE TABLE products (
+    id VARCHAR(36) PRIMARY KEY,
+    name TEXT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

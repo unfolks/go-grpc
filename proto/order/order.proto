@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package orderpb;
+option go_package = "hex-postgres-grpc/proto/order;orderpb";
+
+import "google/protobuf/timestamp.proto";
+
+service ORderService {
+    rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
+    rpc GetOrder (GetOrderRequest) returns (GetOrderResponse);
+    rpc UpdateOrder (UpdateOrderRequest) returns (UpdateOrderResponse);
+    rpc DeleteOrder (DeleteOrderRequest) returns (DeleteOrderResponse);
+    rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
+}
+
+message OrderMessage {
+    string id = 1;
+    double amount = 2;
+    google.protobuf.Timestamp created_at = 3;
+}
+
+message CreateOrderRequest {
+    double amount = 1;
+}
+
+message CreateOrderResponse {
+    OrderMessage order = 1;
+}
+
+message GetOrderRequest {
+    string id = 1;
+}
+
+message GetOrderResponse {
+    OrderMessage order = 1;
+}
+
+message UpdateOrderRequest {
+    string id = 1;
+    double amount = 2;
+}
+
+message UpdateOrderResponse {
+    OrderMessage order = 1;
+}
+
+message DeleteOrderRequest {
+    string id = 1;
+}
+
+message DeleteOrderResponse {
+    bool success = 1;
+}
+
+message ListOrdersRequest {}
+
+message ListOrdersResponse {
+    repeated OrderMessage orders = 1;
+}

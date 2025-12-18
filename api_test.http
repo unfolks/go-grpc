@@ -1,0 +1,102 @@
+### API Testing File for Product, Customer, and Order CRUD Operations
+@baseUrl = http://localhost:8080
+
+### ===== PRODUCT CRUD OPERATIONS =====
+
+### Create a new product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "name": "Laptop",
+  "price": 999.99
+}
+
+### Create another product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "name": "Mouse",
+  "price": 29.99
+}
+
+### Get all products
+GET {{baseUrl}}/products
+
+### Get a specific product (replace with actual product ID)
+GET {{baseUrl}}/products/1
+
+### Update a product (replace with actual product ID)
+PUT {{baseUrl}}/products/1
+Content-Type: application/json
+
+{
+  "name": "Updated Laptop",
+  "price": 1099.99
+}
+
+### Delete a product (replace with actual product ID)
+DELETE {{baseUrl}}/products/1
+
+### ===== CUSTOMER CRUD OPERATIONS =====
+
+### Create a new customer
+POST {{baseUrl}}/customer
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "address": "123 Main St, New York, NY 10001"
+}
+
+### Create another customer
+POST {{baseUrl}}/customer
+Content-Type: application/json
+
+{
+  "name": "Jane Smith",
+  "email": "jane.smith@example.com",
+  "address": "456 Oak Ave, Los Angeles, CA 90001"
+}
+
+### Note: Based on the code analysis, the customer service only has a Create endpoint implemented.
+### Additional CRUD operations (Get, Update, Delete, List) would need to be implemented in the customer service.
+
+### ===== ORDER CRUD OPERATIONS =====
+
+### Create a new order
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "amount": 1299.98
+}
+
+### Create another order
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{
+  "amount": 59.99
+}
+
+### Get all orders
+GET {{baseUrl}}/orders
+
+### Get a specific order (replace with actual order ID)
+GET {{baseUrl}}/orders/1
+
+### Update an order (replace with actual order ID)
+PUT {{baseUrl}}/orders/1
+Content-Type: application/json
+
+{
+  "amount": 1399.99
+}
+
+### Delete an order (replace with actual order ID)
+DELETE {{baseUrl}}/orders/1
+### Delete an order (replace with actual order ID)
+DELETE {{baseUrl}}/orders/1

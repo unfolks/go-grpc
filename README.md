@@ -62,7 +62,17 @@ Each module typically contains:
 
 ## Usage
 
-### Running the Server
+### Running with Makefile
+
+The project includes a `Makefile` for convenience.
+
+- **Run the server**: `make run`
+- **Build the binary**: `make build` (outputs to `bin/server`)
+- **Run tests**: `make test`
+- **Tidy dependencies**: `make tidy`
+- **Clean build artifacts**: `make clean`
+
+### Running Manually
 ```bash
 go run cmd/server/main.go
 ```

@@ -1,6 +1,12 @@
 package product
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrNotFound = errors.New("product not found")
+var ErrInvalidPrice = errors.New("invalid price")
 
 type Product struct {
 	ID        string    `json:"id"`

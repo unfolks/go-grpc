@@ -9,16 +9,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateCustomer struct {
+type service struct {
 	repo domain.Repository
 }
 
-func NewCreateCustomer(repo domain.Repository) *CreateCustomer {
-	return &CreateCustomer{repo: repo}
+func NewService(repo domain.Repository) domain.Service {
+	return &service{repo: repo}
 }
 
-func (u *CreateCustomer) Execute(ctx context.Context, name, email, address string) (*domain.Customer, error) {
-	// validation
+func (s *service) CreateCustomer(ctx context.Context, name, email, address string) (*domain.Customer, error) {
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
@@ -37,10 +36,14 @@ func (u *CreateCustomer) Execute(ctx context.Context, name, email, address strin
 		Address:   address,
 		CreatedAt: time.Now(),
 	}
-	err := u.repo.Save(ctx, &customer)
+	err := s.repo.Save(ctx, &customer)
 	if err != nil {
 		return nil, err
 	}
 
 	return &customer, nil
+}
+
+func (s *service) ListCustomers(ctx context.Context) ([]domain.Customer, error) {
+	return s.repo.FindAll(ctx)
 }

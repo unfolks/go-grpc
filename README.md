@@ -99,6 +99,7 @@ The server starts:
 #### gRPC
 - **OrderService** (CreateOrder, GetOrder)
 - **ProductService** (CreateProduct, GetProduct, ListProducts, UpdateProduct, DeleteProduct)
+- **CustomerService** (CreateCustomer, ListCustomers)
 - Proto definitions: `proto/*.proto`
 
 ## Development Guide: How to Create a New Module
@@ -108,7 +109,8 @@ Follow these steps to add a new module (e.g., `Payment`).
 ### 1. Create Module Structure
 ```
 internal/payment/
-├── domain/        (Entity, Repository Interface, Service)
+├── domain/        (Entity, Repository Interface, Service Interface)
+├── usecase/       (Service Implementation)
 ├── adapters/      (Postgres, HTTP, gRPC implementations)
 └── app.go         (Module-level wiring)
 ```
@@ -120,12 +122,20 @@ package payment
 
 type Components struct {
     HTTPHandler *http.Handler
-    // ... other components
+    GRPCServer  *grpc.Server
 }
 
 func Init(db *sql.DB) Components {
-    // initialize repo, usecases, handlers
-    return Components{ ... }
+    repo := postgres.NewRepository(db)
+    service := usecase.NewService(repo)
+    
+    httpHandler := http.NewHandler(service)
+    grpcServer := grpc.NewServer(service)
+
+    return Components{
+        HTTPHandler: httpHandler,
+        GRPCServer:  grpcServer,
+    }
 }
 ```
 

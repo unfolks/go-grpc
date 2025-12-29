@@ -5,30 +5,15 @@ import (
 	"net/http"
 
 	product "hex-postgres-grpc/internal/product/domain"
-	"hex-postgres-grpc/internal/product/usecase"
 )
 
 type Handler struct {
-	createProduct *usecase.CreateProduct
-	getProduct    *usecase.GetProduct
-	listProducts  *usecase.ListProducts
-	updateProduct *usecase.UpdateProduct
-	deleteProduct *usecase.DeleteProduct
+	service product.Service
 }
 
-func NewHandler(
-	createProduct *usecase.CreateProduct,
-	getProduct *usecase.GetProduct,
-	listProducts *usecase.ListProducts,
-	updateProduct *usecase.UpdateProduct,
-	deleteProduct *usecase.DeleteProduct,
-) *Handler {
+func NewHandler(service product.Service) *Handler {
 	return &Handler{
-		createProduct: createProduct,
-		getProduct:    getProduct,
-		listProducts:  listProducts,
-		updateProduct: updateProduct,
-		deleteProduct: deleteProduct,
+		service: service,
 	}
 }
 
@@ -57,7 +42,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.createProduct.Execute(r.Context(), req.Name, req.Price)
+	p, err := h.service.CreateProduct(r.Context(), req.Name, req.Price)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -74,7 +59,7 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.getProduct.Execute(r.Context(), id)
+	p, err := h.service.GetProduct(r.Context(), id)
 	if err != nil {
 		if err == product.ErrNotFound {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -101,7 +86,7 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.updateProduct.Execute(r.Context(), id, req.Name, req.Price)
+	p, err := h.service.UpdateProduct(r.Context(), id, req.Name, req.Price)
 	if err != nil {
 		if err == product.ErrNotFound {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -122,7 +107,7 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.deleteProduct.Execute(r.Context(), id); err != nil {
+	if err := h.service.DeleteProduct(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -131,7 +116,7 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.listProducts.Execute(r.Context())
+	products, err := h.service.ListProducts(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

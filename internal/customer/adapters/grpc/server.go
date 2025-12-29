@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"hex-postgres-grpc/internal/customer/usecase"
+	"hex-postgres-grpc/internal/customer/domain"
 	customerpb "hex-postgres-grpc/proto/customer"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -10,17 +10,17 @@ import (
 
 type Server struct {
 	customerpb.UnimplementedCustomerServiceServer
-	createCustomer *usecase.CreateCustomer
+	service domain.Service
 }
 
-func NewServer(createCustomer *usecase.CreateCustomer) *Server {
+func NewServer(service domain.Service) *Server {
 	return &Server{
-		createCustomer: createCustomer,
+		service: service,
 	}
 }
 
 func (s *Server) CreateCustomer(ctx context.Context, req *customerpb.CreateCustomerRequest) (*customerpb.CreateCustomerResponse, error) {
-	c, err := s.createCustomer.Execute(ctx, req.Name, req.Email, req.Address)
+	c, err := s.service.CreateCustomer(ctx, req.Name, req.Email, req.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -35,5 +35,3 @@ func (s *Server) CreateCustomer(ctx context.Context, req *customerpb.CreateCusto
 		},
 	}, nil
 }
-
-//func (s *server) GetCustomer(ctx context.Context)

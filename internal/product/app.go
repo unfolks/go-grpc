@@ -15,14 +15,10 @@ type Components struct {
 
 func Init(db *sql.DB) Components {
 	repo := postgres.NewProductRepoPG(db)
-	createUC := usecase.NewCreateProduct(repo)
-	getUC := usecase.NewGetProduct(repo)
-	listUC := usecase.NewListProducts(repo)
-	updateUC := usecase.NewUpdateProduct(repo)
-	deleteUC := usecase.NewDeleteProduct(repo)
+	service := usecase.NewService(repo)
 
-	httpHandler := http.NewHandler(createUC, getUC, listUC, updateUC, deleteUC)
-	grpcServer := grpc.NewProductGRPCServer(createUC, getUC, listUC, updateUC, deleteUC)
+	httpHandler := http.NewHandler(service)
+	grpcServer := grpc.NewProductGRPCServer(service)
 
 	return Components{
 		HTTPHandler: httpHandler,

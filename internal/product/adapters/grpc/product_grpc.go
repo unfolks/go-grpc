@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"hex-postgres-grpc/internal/product/usecase"
+	product "hex-postgres-grpc/internal/product/domain"
 	productpb "hex-postgres-grpc/proto/product"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -10,31 +10,17 @@ import (
 
 type Server struct {
 	productpb.UnimplementedProductServiceServer
-	createProduct *usecase.CreateProduct
-	getProduct    *usecase.GetProduct
-	listProducts  *usecase.ListProducts
-	updateProduct *usecase.UpdateProduct
-	deleteProduct *usecase.DeleteProduct
+	service product.Service
 }
 
-func NewProductGRPCServer(
-	createProduct *usecase.CreateProduct,
-	getProduct *usecase.GetProduct,
-	listProducts *usecase.ListProducts,
-	updateProduct *usecase.UpdateProduct,
-	deleteProduct *usecase.DeleteProduct,
-) *Server {
+func NewProductGRPCServer(service product.Service) *Server {
 	return &Server{
-		createProduct: createProduct,
-		getProduct:    getProduct,
-		listProducts:  listProducts,
-		updateProduct: updateProduct,
-		deleteProduct: deleteProduct,
+		service: service,
 	}
 }
 
 func (s *Server) CreateProduct(ctx context.Context, req *productpb.CreateProductRequest) (*productpb.CreateProductResponse, error) {
-	p, err := s.createProduct.Execute(ctx, req.Name, req.Price)
+	p, err := s.service.CreateProduct(ctx, req.Name, req.Price)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +35,7 @@ func (s *Server) CreateProduct(ctx context.Context, req *productpb.CreateProduct
 }
 
 func (s *Server) GetProduct(ctx context.Context, req *productpb.GetProductRequest) (*productpb.GetProductResponse, error) {
-	p, err := s.getProduct.Execute(ctx, req.Id)
+	p, err := s.service.GetProduct(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +50,7 @@ func (s *Server) GetProduct(ctx context.Context, req *productpb.GetProductReques
 }
 
 func (s *Server) UpdateProduct(ctx context.Context, req *productpb.UpdateProductRequest) (*productpb.UpdateProductResponse, error) {
-	p, err := s.updateProduct.Execute(ctx, req.Id, req.Name, req.Price)
+	p, err := s.service.UpdateProduct(ctx, req.Id, req.Name, req.Price)
 	if err != nil {
 		return nil, err
 	}
@@ -79,14 +65,14 @@ func (s *Server) UpdateProduct(ctx context.Context, req *productpb.UpdateProduct
 }
 
 func (s *Server) DeleteProduct(ctx context.Context, req *productpb.DeleteProductRequest) (*productpb.DeleteProductResponse, error) {
-	if err := s.deleteProduct.Execute(ctx, req.Id); err != nil {
+	if err := s.service.DeleteProduct(ctx, req.Id); err != nil {
 		return nil, err
 	}
 	return &productpb.DeleteProductResponse{Success: true}, nil
 }
 
 func (s *Server) ListProducts(ctx context.Context, req *productpb.ListProductsRequest) (*productpb.ListProductsResponse, error) {
-	products, err := s.listProducts.Execute(ctx)
+	products, err := s.service.ListProducts(ctx)
 	if err != nil {
 		return nil, err
 	}

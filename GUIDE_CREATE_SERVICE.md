@@ -8,18 +8,20 @@ Di dalamnya, buat struktur sub-folder sebagai berikut:
 
 ```text
 internal/customer/
-├── domain/       # Menyimpan Entity dan Interface (Core Logic)
-├── usecase/      # Menyimpan Business Logic per fitur (Create, Get, List, dll)
-└── adapters/     # Menyimpan implementasi infrastruktur
-    ├── postgres/ # Implementasi Repository ke Database
-    └── http/     # Implementasi HTTP Handler
+├── domain/       # Menyimpan Entity dan Service Interface (Core Logic)
+├── usecase/      # Menyimpan Implementasi Service (Business Logic)
+├── adapters/     # Menyimpan implementasi infrastruktur
+│   ├── postgres/ # Implementasi Repository ke Database
+│   ├── http/     # Implementasi HTTP Handler
+│   └── grpc/     # Implementasi gRPC Server
+└── app.go        # Komponen wiring tingkat modul
 ```
 
 ---
 
 ## 2. Layer Domain (`internal/customer/domain`)
 
-Layer ini adalah pusat dari service. Tidak boleh bergantung pada layer lain (no external imports selain stdlib atau uuid).
+Layer ini adalah pusat dari service. Tidak boleh bergantung pada layer lain.
 
 ### a. Membuat Entity (`entity.go`)
 Definisikan struct data utama.
@@ -33,12 +35,13 @@ type Customer struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
+	Address   string    `json:"address"`
 	CreatedAt time.Time `json:"created_at"`
 }
 ```
 
 ### b. Membuat Interface Repository (`repository.go`)
-Definisikan interface untuk komunikasi ke database. Implementation detail ada di layer adapter nanti.
+Definisikan interface untuk komunikasi ke database.
 
 ```go
 package domain
@@ -48,24 +51,31 @@ import "context"
 type Repository interface {
 	Save(ctx context.Context, customer *Customer) error
 	FindByID(ctx context.Context, id string) (*Customer, error)
-	// Tambahkan method lain sesuai kebutuhan
+	FindAll(ctx context.Context) ([]Customer, error)
 }
 ```
 
-### c. Error Definition (Optional)
-Jika ada error spesifik domain, definisikan di sini.
+### c. Membuat Interface Service (`service.go`)
+Definisikan kontrak business logic yang akan digunakan oleh adapter (HTTP/gRPC).
 
 ```go
-var ErrNotFound = errors.New("customer not found")
+package domain
+
+import "context"
+
+type Service interface {
+	CreateCustomer(ctx context.Context, name, email, address string) (*Customer, error)
+	ListCustomers(ctx context.Context) ([]Customer, error)
+}
 ```
 
 ---
 
 ## 3. Layer Usecase (`internal/customer/usecase`)
 
-Layer ini berisi logika aplikasi. Setiap aksi (fitur) sebaiknya dibuat dalam file terpisah (Single Responsibility Principle).
+Layer ini berisi implementasi dari `domain.Service`. Semua logika bisnis dikonsolidasikan dalam satu service implementation.
 
-### Contoh: Create Customer (`create_customer.go`)
+### Membuat Service Implementation (`service.go`)
 
 ```go
 package usecase
@@ -74,82 +84,43 @@ import (
 	"context"
 	"time"
 	"github.com/google/uuid"
-	
-	"hex-postgres-grpc/internal/customer/domain" // Import domain package
+	"hex-postgres-grpc/internal/customer/domain"
 )
 
-type CreateCustomer struct {
+type service struct {
 	repo domain.Repository
 }
 
-func NewCreateCustomer(repo domain.Repository) *CreateCustomer {
-	return &CreateCustomer{repo: repo}
+func NewService(repo domain.Repository) domain.Service {
+	return &service{repo: repo}
 }
 
-func (u *CreateCustomer) Execute(ctx context.Context, name string, email string) (domain.Customer, error) {
-    // Business Logic / Validation
-	if name == "" {
-		return domain.Customer{}, errors.New("name is required")
-	}
-
+func (s *service) CreateCustomer(ctx context.Context, name, email, address string) (*domain.Customer, error) {
 	id := uuid.NewString()
 	customer := domain.Customer{
 		ID:        id,
 		Name:      name,
 		Email:     email,
+		Address:   address,
 		CreatedAt: time.Now(),
 	}
-
-	if err := u.repo.Save(ctx, &customer); err != nil {
-		return domain.Customer{}, err
+	if err := s.repo.Save(ctx, &customer); err != nil {
+		return nil, err
 	}
+	return &customer, nil
+}
 
-	return customer, nil
+func (s *service) ListCustomers(ctx context.Context) ([]domain.Customer, error) {
+	return s.repo.FindAll(ctx)
 }
 ```
-
-*Lakukan hal yang sama untuk fitur lain seperti `get_customer.go`, `list_customers.go`, dll.*
 
 ---
 
 ## 4. Layer Adapters (`internal/customer/adapters`)
 
-Layer ini menghubungkan aplikasi dengan dunia luar (Database, HTTP, gRPC).
-
-### a. Postgres Repository (`adapters/postgres/repository.go`)
-Implementasikan interface `domain.Repository`.
-
-```go
-package postgres
-
-import (
-	"context"
-	"database/sql"
-	"hex-postgres-grpc/internal/customer/domain"
-)
-
-type Repository struct {
-	db *sql.DB
-}
-
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
-}
-
-func (r *Repository) Save(ctx context.Context, c *domain.Customer) error {
-	query := "INSERT INTO customers (id, name, email, created_at) VALUES ($1, $2, $3, $4)"
-	_, err := r.db.ExecContext(ctx, query, c.ID, c.Name, c.Email, c.CreatedAt)
-	return err
-}
-
-func (r *Repository) FindByID(ctx context.Context, id string) (*domain.Customer, error) {
-    // Implementasi query select...
-    return nil, nil // Placeholder
-}
-```
-
-### b. HTTP Handler (`adapters/http/handler.go`)
-Menangani request HTTP dan memanggil Usecase.
+### a. HTTP Handler (`adapters/http/handler.go`)
+Menangani request HTTP dan memanggil Service.
 
 ```go
 package http
@@ -157,187 +128,144 @@ package http
 import (
 	"encoding/json"
 	"net/http"
-	"hex-postgres-grpc/internal/customer/usecase"
+	"hex-postgres-grpc/internal/customer/domain"
 )
 
 type Handler struct {
-	createCustomer *usecase.CreateCustomer
-    // tambahkan usecase lain
+	service domain.Service
 }
 
-func NewHandler(createCustomer *usecase.CreateCustomer) *Handler {
-	return &Handler{createCustomer: createCustomer}
+func NewHandler(service domain.Service) *Handler {
+	return &Handler{service: service}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /customers", h.Create)
+	mux.HandleFunc("GET /customers", h.List)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-    // Parsing Request
     var req struct {
-        Name  string `json:"name"`
-        Email string `json:"email"`
+        Name    string `json:"name"`
+        Email   string `json:"email"`
+        Address string `json:"address"`
     }
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         http.Error(w, err.Error(), http.StatusBadRequest)
         return
     }
 
-    // Call Usecase
-    customer, err := h.createCustomer.Execute(r.Context(), req.Name, req.Email)
+    customer, err := h.service.CreateCustomer(r.Context(), req.Name, req.Email, req.Address)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
-
-    // Response
     json.NewEncoder(w).Encode(customer)
 }
 ```
 
----
-
-## 5. Wiring (Setup Dependency Injection)
-
-Terakhir, sambungkan semua komponen di `cmd/main.go` (atau file entry point aplikasi).
-
-```go
-// Di dalam fungsi main()
-
-// 1. Init DB connection
-db, _ := sql.Open("postgres", dbConnString)
-
-// 2. Init Repository
-customerRepo := customerPostgres.NewRepository(db)
-
-// 3. Init Usecases
-createCustomerUC := customerUsecase.NewCreateCustomer(customerRepo)
-
-// 4. Init Handlers
-customerHandler := customerHttp.NewHandler(createCustomerUC)
-
-// 5. Register Routes
-mux := http.NewServeMux()
-customerHandler.RegisterRoutes(mux)
-
-// 6. Start Server
-http.ListenAndServe(":8080", mux)
-```
-
-
----
-
-## 6. Adapter gRPC (Optional)
-
-Jika ingin menambahkan endpoint gRPC.
-
-### a. Buat Definisi Proto
-Buat folder `proto/customer/` dan file `customer.proto` di root project (sejajar `internal`).
-
-```protobuf
-syntax = "proto3";
-
-package customerpb;
-option go_package = "hex-postgres-grpc/proto/customer;customerpb";
-
-import "google/protobuf/timestamp.proto";
-
-service CustomerService {
-    rpc CreateCustomer (CreateCustomerRequest) returns (CreateCustomerResponse);
-}
-
-message CustomerMessage {
-    string id = 1;
-    string name = 2;
-    string email = 3;
-    google.protobuf.Timestamp created_at = 4;
-}
-
-message CreateCustomerRequest {
-    string name = 1;
-    string email = 2;
-}
-
-message CreateCustomerResponse {
-    CustomerMessage customer = 1;
-}
-```
-
-### b. Generate Code
-
-Pastikan tool `protoc-gen-go` dan `protoc-gen-go-grpc` sudah terinstall:
-
-```bash
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-```
-
-Pastikan folder binary Go ada di PATH (biasanya `$(go env GOPATH)/bin` atau `~/go/bin`).
-
-Jalankan command berikut dari root project:
-
-```bash
-protoc --go_out=. --go_opt=paths=source_relative \
-    --go_grpc_out=. --go_grpc_opt=paths=source_relative \
-    proto/customer/customer.proto
-```
-
-### c. Implementasi Server gRPC (`internal/customer/adapters/grpc/server.go`)
+### b. gRPC Server (`adapters/grpc/server.go`)
+Implementasikan interface yang di-generate dari proto.
 
 ```go
 package grpc
 
 import (
 	"context"
-	"hex-postgres-grpc/internal/customer/usecase"
+	"hex-postgres-grpc/internal/customer/domain"
 	customerpb "hex-postgres-grpc/proto/customer"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Server struct {
 	customerpb.UnimplementedCustomerServiceServer
-	createCustomer *usecase.CreateCustomer
+	service domain.Service
 }
 
-func NewServer(createCustomer *usecase.CreateCustomer) *Server {
-	return &Server{createCustomer: createCustomer}
+func NewServer(service domain.Service) *Server {
+	return &Server{service: service}
 }
 
 func (s *Server) CreateCustomer(ctx context.Context, req *customerpb.CreateCustomerRequest) (*customerpb.CreateCustomerResponse, error) {
-	c, err := s.createCustomer.Execute(ctx, req.Name, req.Email)
+	c, err := s.service.CreateCustomer(ctx, req.Name, req.Email, req.Address)
 	if err != nil {
 		return nil, err
 	}
-	
 	return &customerpb.CreateCustomerResponse{
 		Customer: &customerpb.CustomerMessage{
 			Id:        c.ID,
 			Name:      c.Name,
 			Email:     c.Email,
+			Address:   c.Address,
 			CreatedAt: timestamppb.New(c.CreatedAt),
 		},
 	}, nil
 }
 ```
 
-### d. Wiring gRPC Server (`cmd/main.go`)
+---
+
+## 5. Module Wiring (`internal/customer/app.go`)
+
+Inisialisasi semua komponen dalam satu tempat.
 
 ```go
-// ... di dalam wiring ...
+package customer
 
-// 1. Init gRPC Adapter
-customerGRPC := customergrpc.NewServer(createCustomerUC)
+import (
+	"database/sql"
+	"hex-postgres-grpc/internal/customer/adapters/grpc"
+	"hex-postgres-grpc/internal/customer/adapters/http"
+	"hex-postgres-grpc/internal/customer/adapters/postgres"
+	"hex-postgres-grpc/internal/customer/usecase"
+)
 
-// 2. Init gRPC Server Listener
-lis, _ := net.Listen("tcp", ":50051")
-grpcServer := grpc.NewServer()
+type Components struct {
+	HTTPHandler *http.Handler
+	GRPCServer  *grpc.Server
+}
 
-// 3. Register Service
-customerpb.RegisterCustomerServiceServer(grpcServer, customerGRPC)
+func Init(db *sql.DB) Components {
+	repo := postgres.NewRepository(db)
+	service := usecase.NewService(repo)
 
-// 4. Start Server
-go func() {
-    grpcServer.Serve(lis)
-}()
+	return Components{
+		HTTPHandler: http.NewHandler(service),
+		GRPCServer:  grpc.NewServer(service),
+	}
+}
+```
+
+---
+
+## 6. Global Wiring & Registration
+
+### a. `internal/app/wiring.go`
+Tambahkan module baru ke struct `Application`.
+
+```go
+type Application struct {
+	DB       *sql.DB
+	Customer customer.Components
+    // ...
+}
+
+func Init(cfg DBConfig) (*Application, error) {
+    // ...
+	return &Application{
+		DB:       db,
+		Customer: customer.Init(db),
+	}, nil
+}
+```
+
+### b. `cmd/server/main.go`
+Daftarkan handler ke server HTTP dan gRPC.
+
+```go
+// HTTP
+a.Customer.HTTPHandler.RegisterRoutes(mux)
+
+// gRPC
+customerpb.RegisterCustomerServiceServer(grpcServer, a.Customer.GRPCServer)
 ```

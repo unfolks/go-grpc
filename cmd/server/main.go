@@ -2,6 +2,7 @@ package main
 
 import (
 	"hex-postgres-grpc/internal/app"
+	customerpb "hex-postgres-grpc/proto/customer"
 	orderpb "hex-postgres-grpc/proto/order"
 	productpb "hex-postgres-grpc/proto/product"
 	"log"
@@ -41,6 +42,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	orderpb.RegisterORderServiceServer(grpcServer, a.Order.GRPCServer)
 	productpb.RegisterProductServiceServer(grpcServer, a.Product.GRPCServer)
+	customerpb.RegisterCustomerServiceServer(grpcServer, a.Customer.GRPCServer)
 	go func() {
 		log.Println("gRPC listening :50051")
 		if err := grpcServer.Serve(grpcLis); err != nil {

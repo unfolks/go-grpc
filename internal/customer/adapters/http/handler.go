@@ -2,19 +2,17 @@ package http
 
 import (
 	"encoding/json"
-	"hex-postgres-grpc/internal/customer/usecase"
+	"hex-postgres-grpc/internal/customer/domain"
 	"net/http"
 )
 
 type Handler struct {
-	createCustomer *usecase.CreateCustomer
-	listCustomer   *usecase.ListCustomer
+	service domain.Service
 }
 
-func NewHandler(createCustomer *usecase.CreateCustomer, listCustomer *usecase.ListCustomer) *Handler {
+func NewHandler(service domain.Service) *Handler {
 	return &Handler{
-		createCustomer: createCustomer,
-		listCustomer:   listCustomer,
+		service: service,
 	}
 }
 
@@ -24,7 +22,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	customers, err := h.listCustomer.Execute(r.Context())
+	customers, err := h.service.ListCustomers(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -45,7 +43,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	cust, err := h.createCustomer.Execute(r.Context(), req.Name, req.Email, req.Address)
+	cust, err := h.service.CreateCustomer(r.Context(), req.Name, req.Email, req.Address)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

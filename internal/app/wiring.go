@@ -3,6 +3,8 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"hex-postgres-grpc/internal/auth"
+	authpg "hex-postgres-grpc/internal/auth/adapters/postgres"
 	"hex-postgres-grpc/internal/customer"
 	"hex-postgres-grpc/internal/order"
 	"hex-postgres-grpc/internal/product"
@@ -11,10 +13,13 @@ import (
 )
 
 type Application struct {
-	DB       *sql.DB
-	Order    order.Components
-	Product  product.Components
-	Customer customer.Components
+	DB          *sql.DB
+	Order       order.Components
+	Product     product.Components
+	Customer    customer.Components
+	Auth        auth.Service
+	AuthHandler *auth.Handler
+	AuthRepo    auth.UserRepository
 }
 
 func Init(cfg DBConfig) (*Application, error) {
@@ -23,11 +28,18 @@ func Init(cfg DBConfig) (*Application, error) {
 		return nil, err
 	}
 
+	authRepo := authpg.NewRepository(db)
+	authSvc := auth.NewService("super-secret-key", authRepo)
+	authHandler := auth.NewHandler(authSvc)
+
 	return &Application{
-		DB:       db,
-		Order:    order.Init(db),
-		Product:  product.Init(db),
-		Customer: customer.Init(db),
+		DB:          db,
+		Order:       order.Init(db, authSvc),
+		Product:     product.Init(db, authSvc),
+		Customer:    customer.Init(db, authSvc),
+		Auth:        authSvc,
+		AuthHandler: authHandler,
+		AuthRepo:    authRepo,
 	}, nil
 }
 

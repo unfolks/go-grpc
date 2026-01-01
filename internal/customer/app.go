@@ -2,6 +2,7 @@ package customer
 
 import (
 	"database/sql"
+	"hex-postgres-grpc/internal/auth"
 	"hex-postgres-grpc/internal/customer/adapters/grpc"
 	"hex-postgres-grpc/internal/customer/adapters/http"
 	"hex-postgres-grpc/internal/customer/adapters/postgres"
@@ -13,12 +14,12 @@ type Components struct {
 	GRPCServer  *grpc.Server
 }
 
-func Init(db *sql.DB) Components {
+func Init(db *sql.DB, authSvc auth.Service) Components {
 	repo := postgres.NewRepository(db)
 	service := usecase.NewService(repo)
 
-	httpHandler := http.NewHandler(service)
-	grpcServer := grpc.NewServer(service)
+	httpHandler := http.NewHandler(service, authSvc)
+	grpcServer := grpc.NewServer(service, authSvc)
 
 	return Components{
 		HTTPHandler: httpHandler,

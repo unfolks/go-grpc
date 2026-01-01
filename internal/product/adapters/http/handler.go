@@ -4,16 +4,19 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"hex-postgres-grpc/internal/auth"
 	product "hex-postgres-grpc/internal/product/domain"
 )
 
 type Handler struct {
 	service product.Service
+	auth    auth.Service
 }
 
-func NewHandler(service product.Service) *Handler {
+func NewHandler(service product.Service, authSvc auth.Service) *Handler {
 	return &Handler{
 		service: service,
+		auth:    authSvc,
 	}
 }
 
@@ -36,6 +39,18 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	sub, ok := auth.SubjectFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	authorized, err := h.auth.Authorize(r.Context(), sub, auth.ActionCreate, auth.Resource{Type: "product"})
+	if err != nil || !authorized {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	var req CreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -59,6 +74,18 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sub, ok := auth.SubjectFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	authorized, err := h.auth.Authorize(r.Context(), sub, auth.ActionRead, auth.Resource{Type: "product", ID: id})
+	if err != nil || !authorized {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	p, err := h.service.GetProduct(r.Context(), id)
 	if err != nil {
 		if err == product.ErrNotFound {
@@ -77,6 +104,18 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, "id parameter required", http.StatusBadRequest)
+		return
+	}
+
+	sub, ok := auth.SubjectFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	authorized, err := h.auth.Authorize(r.Context(), sub, auth.ActionUpdate, auth.Resource{Type: "product", ID: id})
+	if err != nil || !authorized {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -107,6 +146,18 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sub, ok := auth.SubjectFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	authorized, err := h.auth.Authorize(r.Context(), sub, auth.ActionDelete, auth.Resource{Type: "product", ID: id})
+	if err != nil || !authorized {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	if err := h.service.DeleteProduct(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -116,6 +167,18 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
+	sub, ok := auth.SubjectFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	authorized, err := h.auth.Authorize(r.Context(), sub, auth.ActionRead, auth.Resource{Type: "product"})
+	if err != nil || !authorized {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	products, err := h.service.ListProducts(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

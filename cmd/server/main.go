@@ -28,18 +28,25 @@ func main() {
 	}
 	go func() {
 		mux := http.NewServeMux()
+		a.AuthHandler.RegisterRoutes(mux) // Register auth routes
 		a.Order.HTTPHandler.RegisterRoutes(mux)
 		a.Product.HTTPHandler.RegisterRoutes(mux)
 		a.Customer.HTTPHandler.RegisterRoutes(mux)
+
+		// Wrap mux with Auth middleware
+		handler := a.Auth.HTTPMiddleware(mux)
+
 		log.Println("HTTP listening :8080")
-		log.Fatal(http.ListenAndServe(":8080", mux))
+		log.Fatal(http.ListenAndServe(":8080", handler))
 	}()
 
 	grpcLis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("grpc listen %v", err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(a.Auth.GRPCUnaryInterceptor),
+	)
 	orderpb.RegisterORderServiceServer(grpcServer, a.Order.GRPCServer)
 	productpb.RegisterProductServiceServer(grpcServer, a.Product.GRPCServer)
 	customerpb.RegisterCustomerServiceServer(grpcServer, a.Customer.GRPCServer)

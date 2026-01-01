@@ -59,7 +59,7 @@ func (r *OrderRepoPG) FindAll(ctx context.Context) ([]order.Order, error) {
 	}
 	defer rows.Close()
 
-	var orders []order.Order
+	orders := []order.Order{}
 	for rows.Next() {
 		var o order.Order
 		var created time.Time

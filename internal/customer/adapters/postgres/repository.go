@@ -46,7 +46,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]domain.Customer, error) {
 	}
 	defer rows.Close()
 
-	var customers []domain.Customer
+	customers := []domain.Customer{}
 	for rows.Next() {
 		var c domain.Customer
 		err := rows.Scan(&c.ID, &c.Name, &c.Email, &c.Address, &c.CreatedAt)

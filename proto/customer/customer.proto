@@ -7,6 +7,22 @@ import "google/protobuf/timestamp.proto";
 
 service CustomerService {
     rpc CreateCustomer (CreateCustomerRequest) returns (CreateCustomerResponse);
+    rpc GetCustomer (GetCustomerRequest) returns (GetCustomerResponse);
+    rpc ListCustomers (ListCustomersRequest) returns (ListCustomersResponse);
+}
+
+message GetCustomerRequest {
+    string id = 1;
+}
+
+message GetCustomerResponse {
+    CustomerMessage customer = 1;
+}
+
+message ListCustomersRequest {}
+
+message ListCustomersResponse {
+    repeated CustomerMessage customers = 1;
 }
 
 message CustomerMessage {

@@ -4,15 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"hex-postgres-grpc/internal/auth"
 	order "hex-postgres-grpc/internal/order/domain"
 )
 
 type Handler struct {
-	svc order.Service
+	svc  order.Service
+	auth auth.Service
 }
 
-func NewHandler(svc order.Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc order.Service, authSvc auth.Service) *Handler {
+	return &Handler{
+		svc:  svc,
+		auth: authSvc,
+	}
 }
 
 type CreateOrderRequest struct {

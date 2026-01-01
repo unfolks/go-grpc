@@ -18,18 +18,18 @@ func NewProductRepoPG(db *sql.DB) *ProductRepoPG {
 }
 
 func (r *ProductRepoPG) Save(ctx context.Context, p *product.Product) error {
-	const q = `INSERT INTO products (id, name, price, created_at) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.ExecContext(ctx, q, p.ID, p.Name, p.Price, p.CreatedAt)
+	const q = `INSERT INTO products (id, name, price, created_at, created_by) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.ExecContext(ctx, q, p.ID, p.Name, p.Price, p.CreatedAt, p.CreatedBy)
 	return err
 }
 
 func (r *ProductRepoPG) FindByID(ctx context.Context, id string) (*product.Product, error) {
-	const query = `SELECT id, name, price, created_at FROM products WHERE id = $1`
+	const query = `SELECT id, name, price, created_at, created_by, updated_at, updated_by FROM products WHERE id = $1 AND deleted_at IS NULL`
 	var p product.Product
 	var created time.Time
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	if err := row.Scan(&p.ID, &p.Name, &p.Price, &created); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Price, &created, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, product.ErrNotFound
 		}
@@ -40,30 +40,30 @@ func (r *ProductRepoPG) FindByID(ctx context.Context, id string) (*product.Produ
 }
 
 func (r *ProductRepoPG) Update(ctx context.Context, p *product.Product) error {
-	const q = `UPDATE products SET name = $1, price = $2 WHERE id = $3`
-	_, err := r.db.ExecContext(ctx, q, p.Name, p.Price, p.ID)
+	const q = `UPDATE products SET name = $1, price = $2, updated_at = $3, updated_by = $4 WHERE id = $5 AND deleted_at IS NULL`
+	_, err := r.db.ExecContext(ctx, q, p.Name, p.Price, p.UpdatedAt, p.UpdatedBy, p.ID)
 	return err
 }
 
-func (r *ProductRepoPG) Delete(ctx context.Context, id string) error {
-	const q = `DELETE FROM products WHERE id = $1`
-	_, err := r.db.ExecContext(ctx, q, id)
+func (r *ProductRepoPG) Delete(ctx context.Context, id string, deletedBy string) error {
+	const q = `UPDATE products SET deleted_at = $1, deleted_by = $2 WHERE id = $3 AND deleted_at IS NULL`
+	_, err := r.db.ExecContext(ctx, q, time.Now(), deletedBy, id)
 	return err
 }
 
 func (r *ProductRepoPG) FindAll(ctx context.Context) ([]product.Product, error) {
-	const q = `SELECT id, name, price, created_at FROM products`
+	const q = `SELECT id, name, price, created_at, created_by, updated_at, updated_by FROM products WHERE deleted_at IS NULL`
 	rows, err := r.db.QueryContext(ctx, q)
 	if err != nil {
-		return nil, err
+		return []product.Product{}, err
 	}
 	defer rows.Close()
 
-	var products []product.Product
+	products := []product.Product{}
 	for rows.Next() {
 		var p product.Product
 		var created time.Time
-		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &created); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &created, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
 			return nil, err
 		}
 		p.CreatedAt = created

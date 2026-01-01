@@ -47,3 +47,7 @@ func (s *service) CreateCustomer(ctx context.Context, name, email, address strin
 func (s *service) ListCustomers(ctx context.Context) ([]domain.Customer, error) {
 	return s.repo.FindAll(ctx)
 }
+
+func (s *service) GetCustomer(ctx context.Context, id string) (*domain.Customer, error) {
+	return s.repo.FindByID(ctx, id)
+}

@@ -7,5 +7,5 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*Product, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id string, deletedBy string) error
-	FindAll(ctx context.Context) ([]Product, error)
+	FindAllPaginated(ctx context.Context, limit, offset int) ([]Product, int, error)
 }

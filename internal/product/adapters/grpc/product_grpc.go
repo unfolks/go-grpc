@@ -72,13 +72,15 @@ func (s *Server) DeleteProduct(ctx context.Context, req *productpb.DeleteProduct
 }
 
 func (s *Server) ListProducts(ctx context.Context, req *productpb.ListProductsRequest) (*productpb.ListProductsResponse, error) {
-	products, err := s.service.ListProducts(ctx)
+	// For gRPC, we can either add page/limit to proto or use defaults
+	// Defaulting to page 1, limit 100 for gRPC for now to keep it broad
+	resp, err := s.service.ListProductsPaginated(ctx, 1, 100)
 	if err != nil {
 		return nil, err
 	}
 
 	var pbProducts []*productpb.ProductMessage
-	for _, p := range products {
+	for _, p := range resp.Data.Data {
 		pbProducts = append(pbProducts, &productpb.ProductMessage{
 			Id:        p.ID,
 			Name:      p.Name,

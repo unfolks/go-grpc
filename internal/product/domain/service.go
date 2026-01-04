@@ -9,5 +9,5 @@ type Service interface {
 	GetProduct(ctx context.Context, id string) (Product, error)
 	UpdateProduct(ctx context.Context, id string, name string, price float64) (Product, error)
 	DeleteProduct(ctx context.Context, id string) error
-	ListProducts(ctx context.Context) ([]Product, error)
+	ListProductsPaginated(ctx context.Context, page, limit int) (PaginatedResponse, error)
 }

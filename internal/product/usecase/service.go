@@ -91,6 +91,36 @@ func (s *service) DeleteProduct(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id, deletedBy)
 }
 
-func (s *service) ListProducts(ctx context.Context) ([]product.Product, error) {
-	return s.repo.FindAll(ctx)
+func (s *service) ListProductsPaginated(ctx context.Context, page, limit int) (product.PaginatedResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+	products, total, err := s.repo.FindAllPaginated(ctx, limit, offset)
+	if err != nil {
+		return product.PaginatedResponse{}, err
+	}
+
+	totalPage := 0
+	if limit > 0 {
+		totalPage = (total + limit - 1) / limit
+	}
+
+	return product.PaginatedResponse{
+		Success: true,
+		Message: "Get data product successfully",
+		Data: product.PaginatedData{
+			Data:             products,
+			CurrentPage:      page,
+			HaveNextPage:     page < totalPage,
+			HavePreviousPage: page > 1,
+			Limit:            limit,
+			TotalItem:        total,
+			TotalPage:        totalPage,
+		},
+	}, nil
 }

@@ -19,3 +19,19 @@ type Product struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	DeletedBy *string    `json:"deleted_by,omitempty"`
 }
+
+type PaginatedData struct {
+	Data             []Product `json:"data"`
+	CurrentPage      int       `json:"current_page"`
+	HaveNextPage     bool      `json:"have_next_page"`
+	HavePreviousPage bool      `json:"have_previous_page"`
+	Limit            int       `json:"limit"`
+	TotalItem        int       `json:"total_item"`
+	TotalPage        int       `json:"total_page"`
+}
+
+type PaginatedResponse struct {
+	Success bool          `json:"success"`
+	Message string        `json:"message"`
+	Data    PaginatedData `json:"data"`
+}

@@ -25,6 +25,16 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /customer/:id", h.Get)
 }
 
+// List returns all customers
+// @Summary List Customers
+// @Description Get a list of all customers
+// @Tags customer
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} domain.Customer
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "forbidden"
+// @Router /customer [get]
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	sub, ok := auth.SubjectFromContext(r.Context())
 	if !ok {
@@ -48,6 +58,19 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(customers)
 }
 
+// Create creates a new customer
+// @Summary Create Customer
+// @Description Create a new customer with the provided details
+// @Tags customer
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body object{name=string,email=string,address=string} true "Create Customer Request"
+// @Success 200 {object} domain.Customer
+// @Failure 400 {string} string "bad request"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "forbidden"
+// @Router /customer [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	sub, ok := auth.SubjectFromContext(r.Context())
 	if !ok {
@@ -82,6 +105,18 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(cust)
 }
 
+// Get returns a single customer by ID
+// @Summary Get Customer
+// @Description Get a single customer's details by their ID
+// @Tags customer
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Customer ID"
+// @Success 200 {object} domain.Customer
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "forbidden"
+// @Failure 404 {string} string "not found"
+// @Router /customer/{id} [get]
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	sub, ok := auth.SubjectFromContext(r.Context())
 	if !ok {

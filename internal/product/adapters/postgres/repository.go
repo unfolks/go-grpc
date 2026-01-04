@@ -51,11 +51,17 @@ func (r *ProductRepoPG) Delete(ctx context.Context, id string, deletedBy string)
 	return err
 }
 
-func (r *ProductRepoPG) FindAll(ctx context.Context) ([]product.Product, error) {
-	const q = `SELECT id, name, price, created_at, created_by, updated_at, updated_by FROM products WHERE deleted_at IS NULL`
-	rows, err := r.db.QueryContext(ctx, q)
+func (r *ProductRepoPG) FindAllPaginated(ctx context.Context, limit, offset int) ([]product.Product, int, error) {
+	const countQ = `SELECT COUNT(*) FROM products WHERE deleted_at IS NULL`
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQ).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	const q = `SELECT id, name, price, created_at, created_by, updated_at, updated_by FROM products WHERE deleted_at IS NULL LIMIT $1 OFFSET $2`
+	rows, err := r.db.QueryContext(ctx, q, limit, offset)
 	if err != nil {
-		return []product.Product{}, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -64,10 +70,10 @@ func (r *ProductRepoPG) FindAll(ctx context.Context) ([]product.Product, error) 
 		var p product.Product
 		var created time.Time
 		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &created, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		p.CreatedAt = created
 		products = append(products, p)
 	}
-	return products, rows.Err()
+	return products, total, rows.Err()
 }

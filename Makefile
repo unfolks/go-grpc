@@ -22,3 +22,12 @@ tidy:
 # Clean build artifacts
 clean:
 	rm -rf bin/
+
+# Generate Swagger documentation
+swagger:
+	swag init -g cmd/server/main.go -o docs/
+
+# Serve documentation locally (requires Python)
+docs-serve:
+	@echo "Serving documentation at http://localhost:8081"
+	@python3 -m http.server 8081 --directory docs

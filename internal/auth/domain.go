@@ -34,6 +34,9 @@ type User struct {
 type UserRepository interface {
 	GetByUsername(ctx context.Context, username string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
+	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, user *User) error
+	List(ctx context.Context) ([]*User, error)
 }
 
 type Resource struct {
@@ -58,4 +61,10 @@ type Service interface {
 	Login(ctx context.Context, username, password string) (string, error)
 	HTTPMiddleware(next http.Handler) http.Handler
 	GRPCUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error)
+
+	// User management
+	CreateUser(ctx context.Context, sub Subject, user *User) error
+	UpdateUser(ctx context.Context, sub Subject, user *User) error
+	GetUser(ctx context.Context, sub Subject, id string) (*User, error)
+	ListUsers(ctx context.Context, sub Subject) ([]*User, error)
 }

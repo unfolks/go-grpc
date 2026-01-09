@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hex-postgres-grpc/internal/auth"
 	authpg "hex-postgres-grpc/internal/auth/adapters/postgres"
+	"hex-postgres-grpc/internal/category"
 	"hex-postgres-grpc/internal/customer"
 	"hex-postgres-grpc/internal/order"
 	"hex-postgres-grpc/internal/product"
@@ -17,6 +18,7 @@ type Application struct {
 	Order       order.Components
 	Product     product.Components
 	Customer    customer.Components
+	Category    category.Component
 	Auth        auth.Service
 	AuthHandler *auth.Handler
 	AuthRepo    auth.UserRepository
@@ -37,6 +39,7 @@ func Init(cfg DBConfig) (*Application, error) {
 		Order:       order.Init(db, authSvc),
 		Product:     product.Init(db, authSvc),
 		Customer:    customer.Init(db, authSvc),
+		Category:    category.Init(db, authSvc),
 		Auth:        authSvc,
 		AuthHandler: authHandler,
 		AuthRepo:    authRepo,

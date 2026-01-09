@@ -2,6 +2,7 @@ package main
 
 import (
 	"hex-postgres-grpc/internal/app"
+	categorypb "hex-postgres-grpc/proto/category"
 	customerpb "hex-postgres-grpc/proto/customer"
 	orderpb "hex-postgres-grpc/proto/order"
 	productpb "hex-postgres-grpc/proto/product"
@@ -50,6 +51,7 @@ func main() {
 		a.Order.HTTPHandler.RegisterRoutes(mux)
 		a.Product.HTTPHandler.RegisterRoutes(mux)
 		a.Customer.HTTPHandler.RegisterRoutes(mux)
+		a.Category.HTTPHandler.RegisterRoutes(mux)
 
 		// Wrap mux with Auth middleware
 		handler := a.Auth.HTTPMiddleware(mux)
@@ -68,6 +70,7 @@ func main() {
 	orderpb.RegisterORderServiceServer(grpcServer, a.Order.GRPCServer)
 	productpb.RegisterProductServiceServer(grpcServer, a.Product.GRPCServer)
 	customerpb.RegisterCustomerServiceServer(grpcServer, a.Customer.GRPCServer)
+	categorypb.RegisterCategoryServiceServer(grpcServer, a.Category.GRPCHandler)
 	go func() {
 		log.Println("gRPC listening :50051")
 		if err := grpcServer.Serve(grpcLis); err != nil {

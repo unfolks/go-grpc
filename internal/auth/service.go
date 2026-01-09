@@ -63,6 +63,15 @@ func (s *service) initPolicies() {
 				return true
 			},
 		},
+		// User management policies
+		{
+			SubjectRole:  "user",
+			Action:       ActionRead,
+			ResourceType: "user",
+			Condition: func(sub Subject, res Resource) bool {
+				return true
+			},
+		},
 		// Example ABAC policy: Owner can update their own resource
 		{
 			SubjectRole:  "user",
@@ -155,4 +164,52 @@ func (s *service) Login(ctx context.Context, username, password string) (string,
 	}
 
 	return s.GenerateToken(ctx, sub)
+}
+
+func (s *service) CreateUser(ctx context.Context, sub Subject, user *User) error {
+	authorized, err := s.Authorize(ctx, sub, ActionCreate, Resource{Type: "user"})
+	if err != nil {
+		return err
+	}
+	if !authorized {
+		return ErrUnauthorized
+	}
+
+	return s.repo.Create(ctx, user)
+}
+
+func (s *service) UpdateUser(ctx context.Context, sub Subject, user *User) error {
+	authorized, err := s.Authorize(ctx, sub, ActionUpdate, Resource{Type: "user"})
+	if err != nil {
+		return err
+	}
+	if !authorized {
+		return ErrUnauthorized
+	}
+
+	return s.repo.Update(ctx, user)
+}
+
+func (s *service) GetUser(ctx context.Context, sub Subject, id string) (*User, error) {
+	authorized, err := s.Authorize(ctx, sub, ActionRead, Resource{Type: "user"})
+	if err != nil {
+		return nil, err
+	}
+	if !authorized {
+		return nil, ErrUnauthorized
+	}
+
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *service) ListUsers(ctx context.Context, sub Subject) ([]*User, error) {
+	authorized, err := s.Authorize(ctx, sub, ActionRead, Resource{Type: "user"})
+	if err != nil {
+		return nil, err
+	}
+	if !authorized {
+		return nil, ErrUnauthorized
+	}
+
+	return s.repo.List(ctx)
 }

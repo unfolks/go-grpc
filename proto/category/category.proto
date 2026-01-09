@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package categorypb;
+option go_package = "hex-postgres-grpc/proto/category;categorypb";
+
+import "google/protobuf/timestamp.proto";
+
+service CategoryService {
+	rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
+	rpc GetCategory (GetCategoryRequest) returns (GetCategoryResponse);
+	rpc UpdateCategory (UpdateCategoryRequest) returns (UpdateCategoryResponse);
+	rpc DeleteCategory (DeleteCategoryRequest) returns (DeleteCategoryResponse);
+	rpc ListCategories (ListCategoriesRequest) returns (ListCategoriesResponse);
+}
+
+message CategoryMessage {
+	string id = 1;
+	string name = 2;
+	google.protobuf.Timestamp created_at = 3;
+	google.protobuf.Timestamp updated_at = 4;
+}
+
+message CreateCategoryRequest {
+	string name = 1;
+}
+
+message CreateCategoryResponse {
+	CategoryMessage category = 1;
+}
+
+message GetCategoryRequest {
+	string id = 1;
+}
+
+message GetCategoryResponse {
+	CategoryMessage category = 1;
+}
+
+message UpdateCategoryRequest {
+	string id = 1;
+	string name = 2;
+}
+
+message UpdateCategoryResponse {
+	CategoryMessage category = 1;
+}
+
+message DeleteCategoryRequest {
+	string id = 1;
+}
+
+message DeleteCategoryResponse {
+	bool success = 1;
+}
+
+message ListCategoriesRequest {}
+
+message ListCategoriesResponse {
+	repeated CategoryMessage categories = 1;
+}

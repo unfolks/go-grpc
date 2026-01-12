@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"errors"
+	domain_common "hex-postgres-grpc/internal/common/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,9 +35,11 @@ func (s *service) CreateOrder(ctx context.Context, amount float64) (Order, error
 
 	id := uuid.NewString()
 	o := Order{
-		ID:        id,
-		Amount:    amount,
-		CreatedAt: time.Now(),
+		BaseEntity: domain_common.BaseEntity{
+			ID:        id,
+			CreatedAt: time.Now(),
+		},
+		Amount: amount,
 	}
 	if err := s.repo.Save(ctx, &o); err != nil {
 		return Order{}, err

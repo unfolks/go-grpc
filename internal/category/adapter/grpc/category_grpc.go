@@ -37,7 +37,12 @@ func (s *Server) CreateCategory(ctx context.Context, req *categorypb.CreateCateg
 			Id:        cat.ID,
 			Name:      cat.Name,
 			CreatedAt: timestamppb.New(cat.CreatedAt),
-			UpdatedAt: timestamppb.New(cat.UpdatedAt),
+			UpdatedAt: func() *timestamppb.Timestamp {
+				if cat.UpdatedAt != nil {
+					return timestamppb.New(*cat.UpdatedAt)
+				}
+				return nil
+			}(),
 		},
 	}, nil
 }
@@ -52,7 +57,12 @@ func (s *Server) GetCategory(ctx context.Context, req *categorypb.GetCategoryReq
 			Id:        cat.ID,
 			Name:      cat.Name,
 			CreatedAt: timestamppb.New(cat.CreatedAt),
-			UpdatedAt: timestamppb.New(cat.UpdatedAt),
+			UpdatedAt: func() *timestamppb.Timestamp {
+				if cat.UpdatedAt != nil {
+					return timestamppb.New(*cat.UpdatedAt)
+				}
+				return nil
+			}(),
 		},
 	}, nil
 }
@@ -73,7 +83,12 @@ func (s *Server) UpdateCategory(ctx context.Context, req *categorypb.UpdateCateg
 			Id:        cat.ID,
 			Name:      cat.Name,
 			CreatedAt: timestamppb.New(cat.CreatedAt),
-			UpdatedAt: timestamppb.New(cat.UpdatedAt),
+			UpdatedAt: func() *timestamppb.Timestamp {
+				if cat.UpdatedAt != nil {
+					return timestamppb.New(*cat.UpdatedAt)
+				}
+				return nil
+			}(),
 		},
 	}, nil
 }
@@ -103,7 +118,12 @@ func (s *Server) ListCategories(ctx context.Context, req *categorypb.ListCategor
 			Id:        cat.ID,
 			Name:      cat.Name,
 			CreatedAt: timestamppb.New(cat.CreatedAt),
-			UpdatedAt: timestamppb.New(cat.UpdatedAt),
+			UpdatedAt: func() *timestamppb.Timestamp {
+				if cat.UpdatedAt != nil {
+					return timestamppb.New(*cat.UpdatedAt)
+				}
+				return nil
+			}(),
 		})
 	}
 

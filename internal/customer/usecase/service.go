@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	domain_common "hex-postgres-grpc/internal/common/domain"
 	"hex-postgres-grpc/internal/customer/domain"
 	"time"
 
@@ -30,11 +31,13 @@ func (s *service) CreateCustomer(ctx context.Context, name, email, address strin
 
 	id := uuid.NewString()
 	customer := domain.Customer{
-		ID:        id,
-		Name:      name,
-		Email:     email,
-		Address:   address,
-		CreatedAt: time.Now(),
+		BaseEntity: domain_common.BaseEntity{
+			ID:        id,
+			CreatedAt: time.Now(),
+		},
+		Name:    name,
+		Email:   email,
+		Address: address,
 	}
 	err := s.repo.Save(ctx, &customer)
 	if err != nil {

@@ -26,16 +26,14 @@ func (r *ProductRepoPG) Save(ctx context.Context, p *product.Product) error {
 func (r *ProductRepoPG) FindByID(ctx context.Context, id string) (*product.Product, error) {
 	const query = `SELECT id, name, price, created_at, created_by, updated_at, updated_by FROM products WHERE id = $1 AND deleted_at IS NULL`
 	var p product.Product
-	var created time.Time
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	if err := row.Scan(&p.ID, &p.Name, &p.Price, &created, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Price, &p.CreatedAt, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, product.ErrNotFound
 		}
 		return nil, err
 	}
-	p.CreatedAt = created
 	return &p, nil
 }
 
@@ -68,11 +66,9 @@ func (r *ProductRepoPG) FindAllPaginated(ctx context.Context, limit, offset int)
 	products := []product.Product{}
 	for rows.Next() {
 		var p product.Product
-		var created time.Time
-		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &created, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.CreatedAt, &p.CreatedBy, &p.UpdatedAt, &p.UpdatedBy); err != nil {
 			return nil, 0, err
 		}
-		p.CreatedAt = created
 		products = append(products, p)
 	}
 	return products, total, rows.Err()

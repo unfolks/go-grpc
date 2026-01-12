@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"hex-postgres-grpc/internal/auth"
+	domain_common "hex-postgres-grpc/internal/common/domain"
 	product "hex-postgres-grpc/internal/product/domain"
 
 	"github.com/google/uuid"
@@ -33,11 +34,13 @@ func (s *service) CreateProduct(ctx context.Context, name string, price float64)
 
 	id := uuid.NewString()
 	p := product.Product{
-		ID:        id,
-		Name:      name,
-		Price:     price,
-		CreatedAt: time.Now(),
-		CreatedBy: createdBy,
+		BaseEntity: domain_common.BaseEntity{
+			ID:        id,
+			CreatedAt: time.Now(),
+			CreatedBy: createdBy,
+		},
+		Name:  name,
+		Price: price,
 	}
 	if err := s.repo.Save(ctx, &p); err != nil {
 		return product.Product{}, err

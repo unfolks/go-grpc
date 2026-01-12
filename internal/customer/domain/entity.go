@@ -1,11 +1,12 @@
 package domain
 
-import "time"
+import (
+	domain_common "hex-postgres-grpc/internal/common/domain"
+)
 
 type Customer struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Address   string    `json:"address"`
-	CreatedAt time.Time `json:"created_at"`
+	domain_common.BaseEntity
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Address string `json:"address"`
 }

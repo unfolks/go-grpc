@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"hex-postgres-grpc/internal/category/domain"
+	domain_common "hex-postgres-grpc/internal/common/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,13 +20,16 @@ func NewService(repo domain.Repository) domain.Service {
 func (s *service) CreateCategory(ctx context.Context, name, userID string) (*domain.Category, error) {
 	id := uuid.NewString()
 	category := domain.Category{
-		ID:        id,
-		Name:      name,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		CreatedBy: userID,
-		UpdatedBy: userID,
+		BaseEntity: domain_common.BaseEntity{
+			ID:        id,
+			CreatedAt: time.Now(),
+			CreatedBy: userID,
+		},
+		Name: name,
 	}
+	now := time.Now()
+	category.UpdatedAt = &now
+	category.UpdatedBy = &userID
 	err := s.repo.Save(ctx, &category)
 	if err != nil {
 		return nil, err
@@ -43,8 +47,9 @@ func (s *service) UpdateCategory(ctx context.Context, id, name, userID string) (
 		return nil, err
 	}
 	category.Name = name
-	category.UpdatedAt = time.Now()
-	category.UpdatedBy = userID
+	now := time.Now()
+	category.UpdatedAt = &now
+	category.UpdatedBy = &userID
 
 	err = s.repo.Update(ctx, category)
 	if err != nil {
